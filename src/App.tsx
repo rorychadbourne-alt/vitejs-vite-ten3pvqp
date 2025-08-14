@@ -1,56 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient'
+import { supabase } from './supabase.ts'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 
-export default function App() {
-  const [session, setSession] = useState<any>(null)
-
-  // Get current session and listen for changes
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-    })
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [])
-
-  // Show login form if no session
-  if (!session) {
-    return (
-      <div style={{ maxWidth: 420, margin: '50px auto' }}>
-        <Auth
-          supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
-          providers={['google', 'github']} // or [] for only email/password
-          socialLayout="horizontal"
-        />
-      </div>
-    )
-  }
-
-  // Show your main app once logged in
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>Welcome, {session.user.email}!</h1>
-      <button
-        onClick={() => supabase.auth.signOut()}
-        style={{ padding: '8px 12px', background: '#ccc', border: 'none', cursor: 'pointer' }}
-      >
-        Sign Out
-      </button>
-
-      {/* Your real app content goes here */}
-      <p>Here’s where your prompts, communities, etc. would load.</p>
-    </div>
-  )
-}
 
 interface Session {
   user: {
@@ -89,7 +41,7 @@ interface Community {
   current_streak: number;
   longest_streak: number;
   last_community_post_date: string | null;
-  members_posted_today: string[]; // array of user IDs who posted today
+  members_posted_today: string[];
   all_members_posted_today: boolean;
 }
 
@@ -121,18 +73,39 @@ const GRATITUDE_PROMPTS = [
   'What opportunity are you thankful for?',
 ];
 
-function App() {
-  // Mock session for demo
-  const [session] = useState<Session>({
-    user: {
-      id: 'demo-user',
-      user_metadata: {
-        name: 'Demo User',
-        email: 'demo@example.com',
-      },
-    },
-  });
+export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
 
+  // Get current session and listen for changes
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session as Session | null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session as Session | null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Show login form if no session
+  if (!session) {
+    return (
+      <div style={{ maxWidth: 420, margin: '50px auto' }}>
+        <Auth
+          supabaseClient={supabase}
+          appearance={{ theme: ThemeSupa }}
+          providers={['google', 'github']}
+          socialLayout="horizontal"
+        />
+      </div>
+    );
+  }
+
+  // Mock/demo state for logged-in user
   const [loading] = useState(false);
   const [gratitudeText, setGratitudeText] = useState('');
   const [entries, setEntries] = useState<GratitudeEntry[]>([]);
@@ -212,7 +185,7 @@ function App() {
         current_streak: 8,
         longest_streak: 15,
         last_community_post_date: yesterday,
-        members_posted_today: ['demo-user', 'user2'], // 2 out of 5 posted
+        members_posted_today: ['demo-user', 'user2'],
         all_members_posted_today: false,
       },
       {
@@ -236,7 +209,7 @@ function App() {
           'user6',
           'user7',
           'user8',
-        ], // all 8 posted!
+        ],
         all_members_posted_today: true,
       },
       {
@@ -538,16 +511,39 @@ function App() {
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px' }}>Loading...</div>;
   }
 
   if (!session) {
     return (
-      <div className="login-container">
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: '#f8fafc',
+        fontFamily: 'system-ui, sans-serif'
+      }}>
         <div style={{ fontSize: '48px', marginBottom: '24px' }}>🙏</div>
-        <h1>Gratitude Journal</h1>
-        <p>Share gratitude with your trusted circles</p>
-        <button onClick={signInWithGoogle} className="google-btn">
+        <h1 style={{ fontSize: '32px', marginBottom: '16px', color: '#2d3748' }}>Gratitude Journal</h1>
+        <p style={{ fontSize: '16px', color: '#718096', marginBottom: '32px' }}>Share gratitude with your trusted circles</p>
+        <button 
+          onClick={signInWithGoogle} 
+          style={{
+            background: '#4285f4',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '12px 24px',
+            fontSize: '16px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
           🔑 Sign in with Google
         </button>
       </div>
@@ -591,91 +587,50 @@ function App() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#f8fafc',
-        fontFamily: 'system-ui, sans-serif',
-      }}
-    >
+    <div className="min-h-screen bg-gray-50 font-sans">
       {/* Header */}
-      <header
-        style={{
-          background: 'white',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '16px 20px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '800px',
-            margin: '0 auto',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '24px' }}>🙏</span>
-            <h1
-              style={{
-                color: '#1a202c',
-                margin: 0,
-                fontSize: '20px',
-                fontWeight: '600',
-              }}
-            >
+      <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🙏</span>
+            <h1 className="text-gray-900 text-xl font-semibold m-0">
               Gratitude Journal
             </h1>
           </div>
 
           {/* Personal Streak Display */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: userPostedToday ? '#f0fff4' : '#fef7f0',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: userPostedToday
-                  ? '1px solid #9ae6b4'
-                  : '1px solid #feb2a8',
-              }}
-            >
-              <span style={{ fontSize: '16px' }}>
+          <div className="flex items-center gap-6">
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+              userPostedToday 
+                ? 'bg-green-50 border-green-300' 
+                : 'bg-orange-50 border-orange-300'
+            }`}>
+              <span className="text-base">
                 {getStreakEmoji(userStreak.current_streak)}
               </span>
-              <div style={{ fontSize: '14px', fontWeight: '500' }}>
-                <div style={{ color: userPostedToday ? '#2f855a' : '#c05621' }}>
+              <div className="text-sm font-medium">
+                <div className={userPostedToday ? 'text-green-700' : 'text-orange-700'}>
                   {userStreak.current_streak} day streak
                 </div>
-                <div style={{ fontSize: '12px', color: '#718096' }}>
+                <div className="text-xs text-gray-600">
                   Best: {userStreak.longest_streak} days
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ textAlign: 'right' }}>
-                <div
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#2d3748',
-                  }}
-                >
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-800">
                   {session.user.user_metadata.name}
                 </div>
-                <div style={{ fontSize: '12px', color: '#718096' }}>
+                <div className="text-xs text-gray-600">
                   {session.user.user_metadata.email}
                 </div>
               </div>
-              <button onClick={signOut} className="sign-out-btn">
+              <button 
+                onClick={signOut} 
+                className="bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-gray-700 transition-colors"
+              >
                 Sign Out
               </button>
             </div>
@@ -684,70 +639,29 @@ function App() {
       </header>
 
       {/* Navigation Tabs */}
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
-        <div
-          style={{
-            display: 'flex',
-            borderBottom: '1px solid #e2e8f0',
-            marginTop: '20px',
-          }}
-        >
+      <div className="max-w-4xl mx-auto px-5">
+        <div className="flex border-b border-gray-200 mt-5">
           <button
             onClick={() => setActiveTab('feed')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              borderBottom:
-                activeTab === 'feed'
-                  ? '2px solid #667eea'
-                  : '2px solid transparent',
-              color: activeTab === 'feed' ? '#667eea' : '#718096',
-              transition: 'all 0.2s',
-            }}
+            className={`px-6 py-3 text-base font-medium cursor-pointer border-b-2 transition-colors ${
+              activeTab === 'feed'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-800'
+            }`}
           >
             📝 Gratitude Feed
           </button>
           <button
             onClick={() => setActiveTab('communities')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              borderBottom:
-                activeTab === 'communities'
-                  ? '2px solid #667eea'
-                  : '2px solid transparent',
-              color: activeTab === 'communities' ? '#667eea' : '#718096',
-              transition: 'all 0.2s',
-              position: 'relative',
-            }}
+            className={`px-6 py-3 text-base font-medium cursor-pointer border-b-2 transition-colors relative ${
+              activeTab === 'communities'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-800'
+            }`}
           >
             👥 Communities
             {pendingInvites.length > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '4px',
-                  right: '8px',
-                  background: '#e53e3e',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '20px',
-                  height: '20px',
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: '600',
-                }}
-              >
+              <span className="absolute -top-1 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center font-semibold">
                 {pendingInvites.length}
               </span>
             )}
@@ -756,37 +670,16 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <main
-        style={{ maxWidth: '800px', margin: '0 auto', padding: '32px 20px' }}
-      >
+      <main className="max-w-4xl mx-auto p-8">
         {activeTab === 'feed' && (
           <>
             {/* Community Streaks Overview */}
             {userCommunities.length > 0 && (
-              <div
-                style={{
-                  background: 'white',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  marginBottom: '32px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #e2e8f0',
-                }}
-              >
-                <h3
-                  style={{
-                    color: '#2d3748',
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    marginBottom: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
+              <div className="bg-white rounded-2xl p-6 mb-8 shadow-sm border border-gray-200">
+                <h3 className="text-gray-800 text-lg font-semibold mb-4 flex items-center gap-2">
                   🔥 Community Streaks
                 </h3>
-                <div style={{ display: 'grid', gap: '12px' }}>
+                <div className="space-y-3">
                   {userCommunities.map((community) => {
                     const userPostedToCommunity = hasUserPostedTodayToCommunity(
                       community.id,
@@ -795,56 +688,38 @@ function App() {
                     return (
                       <div
                         key={community.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '12px 16px',
-                          background: community.all_members_posted_today
-                            ? '#f0fff4'
-                            : '#fafafa',
-                          borderRadius: '8px',
-                          border: community.all_members_posted_today
-                            ? '1px solid #9ae6b4'
-                            : '1px solid #e2e8f0',
-                        }}
+                        className={`flex justify-between items-center p-3 rounded-lg border ${
+                          community.all_members_posted_today
+                            ? 'bg-green-50 border-green-300'
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
                       >
                         <div>
-                          <div style={{ fontWeight: '500', color: '#2d3748' }}>
+                          <div className="font-medium text-gray-800">
                             {community.name}
                           </div>
-                          <div style={{ fontSize: '14px', color: '#718096' }}>
+                          <div className="text-sm text-gray-600">
                             {community.members_posted_today.length}/
                             {community.member_count} posted today
                             {!userPostedToCommunity && (
-                              <span
-                                style={{ color: '#e53e3e', fontWeight: '500' }}
-                              >
-                                {' '}
-                                (you haven't posted)
+                              <span className="text-red-600 font-medium">
+                                {' '}(you haven't posted)
                               </span>
                             )}
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              color: community.all_members_posted_today
-                                ? '#2f855a'
-                                : '#2d3748',
-                            }}
-                          >
+                        <div className="text-right">
+                          <div className={`flex items-center gap-1 text-base font-semibold ${
+                            community.all_members_posted_today
+                              ? 'text-green-700'
+                              : 'text-gray-800'
+                          }`}>
                             <span>
                               {getStreakEmoji(community.current_streak)}
                             </span>
                             {community.current_streak} days
                           </div>
-                          <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+                          <div className="text-xs text-gray-500">
                             Best: {community.longest_streak}
                           </div>
                         </div>
@@ -856,30 +731,14 @@ function App() {
             )}
 
             {/* Community Filter */}
-            <div style={{ marginBottom: '24px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px',
-                }}
-              >
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Filter by community:
               </label>
               <select
                 value={selectedCommunity}
                 onChange={(e) => setSelectedCommunity(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  background: 'white',
-                  cursor: 'pointer',
-                  minWidth: '200px',
-                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white cursor-pointer min-w-48"
               >
                 <option value="all">All My Communities</option>
                 {userCommunities.map((community) => (
@@ -892,43 +751,17 @@ function App() {
 
             {/* Today's Prompt Card */}
             {userCommunities.length > 0 && (
-              <div
-                style={{
-                  background: 'white',
-                  borderRadius: '16px',
-                  padding: '32px',
-                  marginBottom: '32px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #e2e8f0',
-                }}
-              >
-                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                  <div style={{ fontSize: '32px', marginBottom: '16px' }}>
-                    ✨
-                  </div>
-                  <h2
-                    style={{
-                      color: '#2d3748',
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      marginBottom: '8px',
-                    }}
-                  >
+              <div className="bg-white rounded-2xl p-8 mb-8 shadow-sm border border-gray-200">
+                <div className="text-center mb-6">
+                  <div className="text-3xl mb-4">✨</div>
+                  <h2 className="text-gray-800 text-lg font-semibold mb-2">
                     Today's Gratitude Prompt
                   </h2>
-                  <p
-                    style={{
-                      color: '#4a5568',
-                      fontSize: '16px',
-                      lineHeight: '1.6',
-                      marginBottom: '8px',
-                      fontStyle: 'italic',
-                    }}
-                  >
+                  <p className="text-gray-600 text-base leading-relaxed mb-2 italic">
                     "{todaysPrompt}"
                   </p>
                   {selectedCommunity !== 'all' ? (
-                    <p style={{ color: '#718096', fontSize: '14px' }}>
+                    <p className="text-gray-600 text-sm">
                       Sharing to:{' '}
                       <strong>
                         {
@@ -939,51 +772,22 @@ function App() {
                       </strong>
                     </p>
                   ) : (
-                    <p
-                      style={{
-                        color: '#e53e3e',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                      }}
-                    >
+                    <p className="text-red-600 text-sm font-medium">
                       Select a community below to share your gratitude
                     </p>
                   )}
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
+                <div className="mb-6">
                   {selectedCommunity === 'all' && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          color: '#374151',
-                          marginBottom: '8px',
-                        }}
-                      >
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Choose community to share to: *
                       </label>
                       <select
                         value={selectedCommunity}
                         onChange={(e) => setSelectedCommunity(e.target.value)}
-                        style={{
-                          padding: '12px',
-                          border: '2px solid #e2e8f0',
-                          borderRadius: '8px',
-                          fontSize: '16px',
-                          background: 'white',
-                          cursor: 'pointer',
-                          width: '100%',
-                          outline: 'none',
-                        }}
-                        onFocus={(e) =>
-                          (e.currentTarget.style.borderColor = '#667eea')
-                        }
-                        onBlur={(e) =>
-                          (e.currentTarget.style.borderColor = '#e2e8f0')
-                        }
+                        className="w-full px-3 py-3 border-2 border-gray-200 rounded-lg text-base bg-white cursor-pointer outline-none focus:border-blue-500"
                       >
                         <option value="all">Select a community...</option>
                         {userCommunities.map((community) => (
@@ -998,25 +802,7 @@ function App() {
                     value={gratitudeText}
                     onChange={(e) => setGratitudeText(e.target.value)}
                     placeholder="Share what you're grateful for..."
-                    style={{
-                      width: '100%',
-                      minHeight: '120px',
-                      padding: '16px',
-                      border: '2px solid #e2e8f0',
-                      borderRadius: '12px',
-                      fontSize: '16px',
-                      fontFamily: 'inherit',
-                      resize: 'vertical',
-                      outline: 'none',
-                      transition: 'border-color 0.2s',
-                      backgroundColor: '#fafafa',
-                    }}
-                    onFocus={(e) =>
-                      (e.currentTarget.style.borderColor = '#667eea')
-                    }
-                    onBlur={(e) =>
-                      (e.currentTarget.style.borderColor = '#e2e8f0')
-                    }
+                    className="w-full min-h-32 p-4 border-2 border-gray-200 rounded-xl text-base resize-y outline-none bg-gray-50 focus:border-blue-500 transition-colors"
                   />
                 </div>
 
@@ -1027,41 +813,15 @@ function App() {
                     submitting ||
                     selectedCommunity === 'all'
                   }
-                  style={{
-                    background:
-                      gratitudeText.trim() && selectedCommunity !== 'all'
-                        ? '#48bb78'
-                        : '#a0aec0',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '14px 32px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor:
-                      gratitudeText.trim() && selectedCommunity !== 'all'
-                        ? 'pointer'
-                        : 'not-allowed',
-                    width: '100%',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                  }}
+                  className={`w-full py-4 px-8 text-base font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors ${
+                    gratitudeText.trim() && selectedCommunity !== 'all'
+                      ? 'bg-green-500 hover:bg-green-600 text-white cursor-pointer'
+                      : 'bg-gray-400 text-white cursor-not-allowed'
+                  }`}
                 >
                   {submitting ? (
                     <>
-                      <div
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          border: '2px solid transparent',
-                          borderTop: '2px solid white',
-                          borderRadius: '50%',
-                          animation: 'spin 1s linear infinite',
-                        }}
-                      ></div>
+                      <div className="w-4 h-4 border-2 border-transparent border-t-white rounded-full animate-spin"></div>
                       Sharing...
                     </>
                   ) : (
@@ -1076,44 +836,19 @@ function App() {
               </div>
             )}
 
+            {/* No communities state */}
             {userCommunities.length === 0 && (
-              <div
-                style={{
-                  background: 'white',
-                  borderRadius: '16px',
-                  padding: '48px',
-                  textAlign: 'center',
-                  marginBottom: '32px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #e2e8f0',
-                }}
-              >
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>👥</div>
-                <h2
-                  style={{
-                    color: '#2d3748',
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    marginBottom: '8px',
-                  }}
-                >
+              <div className="bg-white rounded-2xl p-12 text-center mb-8 shadow-sm border border-gray-200">
+                <div className="text-5xl mb-4">👥</div>
+                <h2 className="text-gray-800 text-xl font-semibold mb-2">
                   No Communities Yet
                 </h2>
-                <p style={{ color: '#718096', marginBottom: '24px' }}>
+                <p className="text-gray-600 mb-6">
                   Create or join a community to start sharing gratitude!
                 </p>
                 <button
                   onClick={() => setActiveTab('communities')}
-                  style={{
-                    background: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '12px 24px',
-                    fontSize: '16px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                  }}
+                  className="bg-blue-500 text-white px-6 py-3 rounded-lg text-base font-medium hover:bg-blue-600 transition-colors"
                 >
                   Manage Communities
                 </button>
@@ -1123,17 +858,7 @@ function App() {
             {/* Community Feed */}
             {filteredEntries.length > 0 && (
               <div>
-                <h3
-                  style={{
-                    color: '#2d3748',
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    marginBottom: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
+                <h3 className="text-gray-800 text-xl font-semibold mb-5 flex items-center gap-2">
                   <span>🌟</span>
                   {selectedCommunity === 'all'
                     ? 'All Communities Feed'
@@ -1143,148 +868,51 @@ function App() {
                       } Feed`}
                 </h3>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '16px',
-                  }}
-                >
+                <div className="space-y-4">
                   {filteredEntries.map((entry) => (
                     <div
                       key={entry.id}
-                      style={{
-                        background: 'white',
-                        borderRadius: '12px',
-                        padding: '24px',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-                        border: '1px solid #e2e8f0',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow =
-                          '0 8px 16px rgba(0, 0, 0, 0.1)';
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow =
-                          '0 2px 4px rgba(0, 0, 0, 0.05)';
-                      }}
+                      className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: '12px',
-                        }}
-                      >
+                      <div className="flex justify-between items-start mb-3">
                         <div>
-                          <div
-                            style={{
-                              fontSize: '14px',
-                              fontWeight: '600',
-                              color: '#2d3748',
-                              marginBottom: '4px',
-                            }}
-                          >
+                          <div className="text-sm font-semibold text-gray-800 mb-1">
                             {entry.user_name}
                           </div>
-                          <div style={{ fontSize: '12px', color: '#718096' }}>
+                          <div className="text-xs text-gray-600">
                             {formatDate(entry.created_at)} at{' '}
                             {formatTime(entry.created_at)} •{' '}
                             {entry.community_name}
                           </div>
                         </div>
-                        <div
-                          style={{
-                            fontSize: '12px',
-                            color: '#667eea',
-                            backgroundColor: '#f0f4ff',
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            fontWeight: '500',
-                          }}
-                        >
+                        <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded font-medium">
                           Daily Prompt
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          fontSize: '13px',
-                          color: '#718096',
-                          fontStyle: 'italic',
-                          marginBottom: '12px',
-                          padding: '8px 12px',
-                          backgroundColor: '#f7fafc',
-                          borderRadius: '8px',
-                          borderLeft: '3px solid #667eea',
-                        }}
-                      >
+                      <div className="text-xs text-gray-600 italic mb-3 p-3 bg-gray-50 rounded-lg border-l-3 border-blue-500">
                         "{entry.prompt_question}"
                       </div>
 
-                      <p
-                        style={{
-                          color: '#2d3748',
-                          fontSize: '16px',
-                          lineHeight: '1.6',
-                          marginBottom: '16px',
-                        }}
-                      >
+                      <p className="text-gray-800 text-base leading-relaxed mb-4">
                         {entry.content}
                       </p>
 
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
+                      <div className="flex items-center justify-between">
                         <button
                           onClick={() => toggleLike(entry.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            cursor: 'pointer',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            color: entry.liked_by_user ? '#e53e3e' : '#718096',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseOver={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f7fafc';
-                          }}
-                          onMouseOut={(e) => {
-                            e.currentTarget.style.backgroundColor =
-                              'transparent';
-                          }}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-50 ${
+                            entry.liked_by_user ? 'text-red-500' : 'text-gray-600'
+                          }`}
                         >
-                          <span style={{ fontSize: '16px' }}>
+                          <span className="text-base">
                             {entry.liked_by_user ? '❤️' : '🤍'}
                           </span>
                           {entry.likes} {entry.likes === 1 ? 'heart' : 'hearts'}
                         </button>
 
                         {entry.user_id === session.user.id && (
-                          <div
-                            style={{
-                              fontSize: '12px',
-                              color: '#48bb78',
-                              fontWeight: '500',
-                              backgroundColor: '#f0fff4',
-                              padding: '4px 8px',
-                              borderRadius: '6px',
-                            }}
-                          >
+                          <div className="text-xs text-green-700 font-medium bg-green-50 px-2 py-1 rounded">
                             Your Entry
                           </div>
                         )}
@@ -1295,15 +923,10 @@ function App() {
               </div>
             )}
 
+            {/* No entries state */}
             {filteredEntries.length === 0 && userCommunities.length > 0 && (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '48px',
-                  color: '#718096',
-                }}
-              >
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌱</div>
+              <div className="text-center py-12 text-gray-600">
+                <div className="text-5xl mb-4">🌱</div>
                 <p>
                   No gratitude entries yet in{' '}
                   {selectedCommunity === 'all'
@@ -1321,73 +944,32 @@ function App() {
           <>
             {/* Pending Invites */}
             {pendingInvites.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
-                <h3
-                  style={{
-                    color: '#2d3748',
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    marginBottom: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
+              <div className="mb-8">
+                <h3 className="text-gray-800 text-xl font-semibold mb-5 flex items-center gap-2">
                   <span>📬</span>
                   Pending Invitations
                 </h3>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                  }}
-                >
+                <div className="space-y-3">
                   {pendingInvites.map((invite) => (
                     <div
                       key={invite.id}
-                      style={{
-                        background: 'white',
-                        borderRadius: '12px',
-                        padding: '20px',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-                        border: '2px solid #fbbf24',
-                      }}
+                      className="bg-white rounded-xl p-5 shadow-sm border-2 border-yellow-300"
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
+                      <div className="flex justify-between items-center">
                         <div>
-                          <div
-                            style={{
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              color: '#2d3748',
-                              marginBottom: '4px',
-                            }}
-                          >
+                          <div className="text-base font-semibold text-gray-800 mb-1">
                             {invite.community_name}
                           </div>
-                          <div
-                            style={{
-                              fontSize: '14px',
-                              color: '#718096',
-                              marginBottom: '8px',
-                            }}
-                          >
+                          <div className="text-sm text-gray-600 mb-2">
                             Invited by {invite.invited_by_name} (
                             {invite.invited_by_email})
                           </div>
-                          <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+                          <div className="text-xs text-gray-500">
                             {formatDate(invite.created_at)} at{' '}
                             {formatTime(invite.created_at)}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="flex gap-2">
                           <button
                             onClick={() =>
                               acceptInvite(
@@ -1396,31 +978,13 @@ function App() {
                                 invite.community_name
                               )
                             }
-                            style={{
-                              background: '#10b981',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '8px',
-                              padding: '8px 16px',
-                              fontSize: '14px',
-                              fontWeight: '500',
-                              cursor: 'pointer',
-                            }}
+                            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
                           >
                             Accept
                           </button>
                           <button
                             onClick={() => declineInvite(invite.id)}
-                            style={{
-                              background: '#6b7280',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '8px',
-                              padding: '8px 16px',
-                              fontSize: '14px',
-                              fontWeight: '500',
-                              cursor: 'pointer',
-                            }}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors"
                           >
                             Decline
                           </button>
@@ -1432,52 +996,23 @@ function App() {
               </div>
             )}
 
-            {/* My Communities with Enhanced Streak Display */}
-            <div style={{ marginBottom: '32px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '20px',
-                }}
-              >
-                <h3
-                  style={{
-                    color: '#2d3748',
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    margin: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
+            {/* My Communities */}
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-gray-800 text-xl font-semibold flex items-center gap-2">
                   <span>👥</span>
                   My Communities
                 </h3>
                 <button
                   onClick={() => setShowCreateCommunity(true)}
-                  style={{
-                    background: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
+                  className="bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors flex items-center gap-2"
                 >
                   <span>➕</span>
                   Create Community
                 </button>
               </div>
 
-              <div style={{ display: 'grid', gap: '16px' }}>
+              <div className="space-y-4">
                 {userCommunities.map((community) => {
                   const userPostedToCommunity = hasUserPostedTodayToCommunity(
                     community.id,
@@ -1486,159 +1021,82 @@ function App() {
                   return (
                     <div
                       key={community.id}
-                      style={{
-                        background: 'white',
-                        borderRadius: '12px',
-                        padding: '24px',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-                        border: community.all_members_posted_today
-                          ? '2px solid #9ae6b4'
-                          : '1px solid #e2e8f0',
-                      }}
+                      className={`bg-white rounded-xl p-6 shadow-sm border-2 ${
+                        community.all_members_posted_today
+                          ? 'border-green-300'
+                          : 'border-gray-200'
+                      }`}
                     >
                       {/* Streak Header */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: '16px',
-                          padding: '12px 16px',
-                          background: community.all_members_posted_today
-                            ? '#f0fff4'
-                            : '#f8fafc',
-                          borderRadius: '8px',
-                          border: community.all_members_posted_today
-                            ? '1px solid #9ae6b4'
-                            : '1px solid #e2e8f0',
-                        }}
-                      >
+                      <div className={`flex justify-between items-center mb-4 p-3 rounded-lg border ${
+                        community.all_members_posted_today
+                          ? 'bg-green-50 border-green-300'
+                          : 'bg-gray-50 border-gray-200'
+                      }`}>
                         <div>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              fontSize: '18px',
-                              fontWeight: '600',
-                              color: community.all_members_posted_today
-                                ? '#2f855a'
-                                : '#2d3748',
-                              marginBottom: '4px',
-                            }}
-                          >
+                          <div className={`flex items-center gap-2 text-lg font-semibold mb-1 ${
+                            community.all_members_posted_today
+                              ? 'text-green-700'
+                              : 'text-gray-800'
+                          }`}>
                             <span>
                               {getStreakEmoji(community.current_streak)}
                             </span>
                             {community.current_streak} Day Community Streak
                           </div>
-                          <div
-                            style={{
-                              fontSize: '14px',
-                              color: community.all_members_posted_today
-                                ? '#2f855a'
-                                : '#718096',
-                            }}
-                          >
+                          <div className={`text-sm ${
+                            community.all_members_posted_today
+                              ? 'text-green-700'
+                              : 'text-gray-600'
+                          }`}>
                             {community.members_posted_today.length}/
                             {community.member_count} posted today
                             {community.all_members_posted_today &&
                               ' - Streak continues! 🎉'}
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div
-                            style={{
-                              fontSize: '14px',
-                              fontWeight: '500',
-                              color: '#718096',
-                            }}
-                          >
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-gray-600">
                             Record: {community.longest_streak} days
                           </div>
                           {!userPostedToCommunity && (
-                            <div
-                              style={{
-                                fontSize: '12px',
-                                color: '#e53e3e',
-                                fontWeight: '500',
-                                marginTop: '4px',
-                              }}
-                            >
+                            <div className="text-xs text-red-600 font-medium mt-1">
                               You need to post!
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <h4
-                            style={{
-                              color: '#2d3748',
-                              fontSize: '18px',
-                              fontWeight: '600',
-                              margin: '0 0 8px 0',
-                            }}
-                          >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="text-gray-800 text-lg font-semibold mb-2">
                             {community.name}
                           </h4>
                           {community.description && (
-                            <p
-                              style={{
-                                color: '#718096',
-                                fontSize: '14px',
-                                margin: '0 0 12px 0',
-                              }}
-                            >
+                            <p className="text-gray-600 text-sm mb-3">
                               {community.description}
                             </p>
                           )}
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '16px',
-                              fontSize: '12px',
-                              color: '#9ca3af',
-                            }}
-                          >
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
                             <span>{community.member_count} members</span>
                             <span>
                               Created {formatDate(community.created_at)}
                             </span>
                             {community.is_admin && (
-                              <span
-                                style={{ color: '#667eea', fontWeight: '500' }}
-                              >
+                              <span className="text-blue-600 font-medium">
                                 Admin
                               </span>
                             )}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="flex gap-2">
                           {community.is_admin && (
                             <button
                               onClick={() => {
                                 setInviteCommunityId(community.id);
                                 setShowInviteModal(true);
                               }}
-                              style={{
-                                background: '#3b82f6',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
-                                padding: '6px 12px',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                              }}
+                              className="bg-blue-500 text-white px-3 py-1 rounded text-xs font-medium hover:bg-blue-600 transition-colors"
                             >
                               Invite
                             </button>
@@ -1648,16 +1106,7 @@ function App() {
                               setSelectedCommunity(community.id);
                               setActiveTab('feed');
                             }}
-                            style={{
-                              background: '#10b981',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '6px 12px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer',
-                            }}
+                            className="bg-green-500 text-white px-3 py-1 rounded text-xs font-medium hover:bg-green-600 transition-colors"
                           >
                             View Feed
                           </button>
@@ -1669,91 +1118,38 @@ function App() {
               </div>
             </div>
 
-            {/* Rest of communities tab content remains the same... */}
             {/* Discover Communities */}
             <div>
-              <h3
-                style={{
-                  color: '#2d3748',
-                  fontSize: '20px',
-                  fontWeight: '600',
-                  marginBottom: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
+              <h3 className="text-gray-800 text-xl font-semibold mb-5 flex items-center gap-2">
                 <span>🔍</span>
                 Discover Communities
               </h3>
 
-              <div style={{ display: 'grid', gap: '16px' }}>
+              <div className="space-y-4">
                 {communities
                   .filter((c) => !c.is_member)
                   .map((community) => (
                     <div
                       key={community.id}
-                      style={{
-                        background: 'white',
-                        borderRadius: '12px',
-                        padding: '24px',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-                        border: '1px solid #e2e8f0',
-                      }}
+                      className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <h4
-                            style={{
-                              color: '#2d3748',
-                              fontSize: '18px',
-                              fontWeight: '600',
-                              margin: '0 0 8px 0',
-                            }}
-                          >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="text-gray-800 text-lg font-semibold mb-2">
                             {community.name}
                           </h4>
                           {community.description && (
-                            <p
-                              style={{
-                                color: '#718096',
-                                fontSize: '14px',
-                                margin: '0 0 12px 0',
-                              }}
-                            >
+                            <p className="text-gray-600 text-sm mb-3">
                               {community.description}
                             </p>
                           )}
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '16px',
-                              fontSize: '12px',
-                              color: '#9ca3af',
-                              marginBottom: '8px',
-                            }}
-                          >
+                          <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
                             <span>{community.member_count} members</span>
                             <span>
                               Created {formatDate(community.created_at)}
                             </span>
                           </div>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '14px',
-                              color: '#4a5568',
-                            }}
-                          >
+                          <div className="flex items-center gap-1 text-sm text-gray-700">
                             <span>
                               {getStreakEmoji(community.current_streak)}
                             </span>
@@ -1765,16 +1161,7 @@ function App() {
                         </div>
                         <button
                           onClick={() => joinCommunity(community.id)}
-                          style={{
-                            background: '#667eea',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '8px 16px',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                          }}
+                          className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
                         >
                           Join
                         </button>
@@ -1787,50 +1174,12 @@ function App() {
         )}
       </main>
 
-      {/* Modals remain the same... */}
+      {/* Create Community Modal */}
       {showCreateCommunity && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-        >
-          <div
-            style={{
-              background: 'white',
-              borderRadius: '16px',
-              padding: '32px',
-              maxWidth: '500px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '24px',
-              }}
-            >
-              <h2
-                style={{
-                  color: '#2d3748',
-                  fontSize: '20px',
-                  fontWeight: '600',
-                  margin: 0,
-                }}
-              >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-5">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full max-h-screen overflow-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-gray-800 text-xl font-semibold">
                 Create New Community
               </h2>
               <button
@@ -1839,28 +1188,14 @@ function App() {
                   setNewCommunityName('');
                   setNewCommunityDescription('');
                 }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#9ca3af',
-                }}
+                className="text-2xl text-gray-400 hover:text-gray-600 transition-colors"
               >
                 ×
               </button>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px',
-                }}
-              >
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Community Name *
               </label>
               <input
@@ -1868,27 +1203,12 @@ function App() {
                 value={newCommunityName}
                 onChange={(e) => setNewCommunityName(e.target.value)}
                 placeholder="e.g., Family Circle, Work Friends, Book Club"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none',
-                }}
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg text-base outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
-            <div style={{ marginBottom: '32px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px',
-                }}
-              >
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description (Optional)
               </label>
               <textarea
@@ -1896,58 +1216,29 @@ function App() {
                 onChange={(e) => setNewCommunityDescription(e.target.value)}
                 placeholder="Brief description of your community's purpose..."
                 rows={3}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  resize: 'vertical',
-                  fontFamily: 'inherit',
-                }}
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg text-base outline-none focus:border-blue-500 transition-colors resize-y"
               />
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'flex-end',
-              }}
-            >
+            <div className="flex gap-3 justify-end">
               <button
                 onClick={() => {
                   setShowCreateCommunity(false);
                   setNewCommunityName('');
                   setNewCommunityDescription('');
                 }}
-                style={{
-                  background: '#6b7280',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '12px 24px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                }}
+                className="bg-gray-500 text-white px-6 py-3 rounded-lg text-base font-medium hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={createCommunity}
                 disabled={!newCommunityName.trim()}
-                style={{
-                  background: newCommunityName.trim() ? '#667eea' : '#9ca3af',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '12px 24px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: newCommunityName.trim() ? 'pointer' : 'not-allowed',
-                }}
+                className={`px-6 py-3 rounded-lg text-base font-medium transition-colors ${
+                  newCommunityName.trim() 
+                    ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                    : 'bg-gray-400 text-white cursor-not-allowed'
+                }`}
               >
                 Create Community
               </button>
@@ -1956,47 +1247,12 @@ function App() {
         </div>
       )}
 
+      {/* Invite Modal */}
       {showInviteModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-        >
-          <div
-            style={{
-              background: 'white',
-              borderRadius: '16px',
-              padding: '32px',
-              maxWidth: '500px',
-              width: '100%',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '24px',
-              }}
-            >
-              <h2
-                style={{
-                  color: '#2d3748',
-                  fontSize: '20px',
-                  fontWeight: '600',
-                  margin: 0,
-                }}
-              >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-5">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-gray-800 text-xl font-semibold">
                 Invite to Community
               </h2>
               <button
@@ -2005,41 +1261,21 @@ function App() {
                   setInviteEmail('');
                   setInviteCommunityId('');
                 }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#9ca3af',
-                }}
+                className="text-2xl text-gray-400 hover:text-gray-600 transition-colors"
               >
                 ×
               </button>
             </div>
 
-            <div
-              style={{
-                marginBottom: '8px',
-                fontSize: '14px',
-                color: '#718096',
-              }}
-            >
+            <div className="mb-2 text-sm text-gray-600">
               Inviting to:{' '}
               <strong>
                 {communities.find((c) => c.id === inviteCommunityId)?.name}
               </strong>
             </div>
 
-            <div style={{ marginBottom: '32px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px',
-                }}
-              >
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
               <input
@@ -2047,56 +1283,29 @@ function App() {
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="friend@example.com"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none',
-                }}
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg text-base outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'flex-end',
-              }}
-            >
+            <div className="flex gap-3 justify-end">
               <button
                 onClick={() => {
                   setShowInviteModal(false);
                   setInviteEmail('');
                   setInviteCommunityId('');
                 }}
-                style={{
-                  background: '#6b7280',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '12px 24px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                }}
+                className="bg-gray-500 text-white px-6 py-3 rounded-lg text-base font-medium hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={inviteToCompletely}
                 disabled={!inviteEmail.trim()}
-                style={{
-                  background: inviteEmail.trim() ? '#3b82f6' : '#9ca3af',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '12px 24px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: inviteEmail.trim() ? 'pointer' : 'not-allowed',
-                }}
+                className={`px-6 py-3 rounded-lg text-base font-medium transition-colors ${
+                  inviteEmail.trim() 
+                    ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                    : 'bg-gray-400 text-white cursor-not-allowed'
+                }`}
               >
                 Send Invite
               </button>
@@ -2104,15 +1313,6 @@ function App() {
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }
-
-export default App;
