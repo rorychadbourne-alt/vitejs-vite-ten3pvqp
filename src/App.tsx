@@ -1,16 +1,5 @@
 import { useState, useEffect } from 'react';
 
-// Mock supabase for demo
-const supabase = {
-  auth: {
-    getSession: () => Promise.resolve({ data: { session: null } }),
-    onAuthStateChange: () => ({
-      data: { subscription: { unsubscribe: () => {} } },
-    }),
-    signOut: () => Promise.resolve({ error: null }),
-    signInWithOAuth: () => Promise.resolve({ error: null }),
-  },
-};
 
 interface Session {
   user: {
