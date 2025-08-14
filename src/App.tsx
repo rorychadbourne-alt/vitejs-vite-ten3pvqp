@@ -1,5 +1,56 @@
 import { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient'
+import { Auth } from '@supabase/auth-ui-react'
+import { ThemeSupa } from '@supabase/auth-ui-shared'
 
+export default function App() {
+  const [session, setSession] = useState<any>(null)
+
+  // Get current session and listen for changes
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => {
+      listener.subscription.unsubscribe()
+    }
+  }, [])
+
+  // Show login form if no session
+  if (!session) {
+    return (
+      <div style={{ maxWidth: 420, margin: '50px auto' }}>
+        <Auth
+          supabaseClient={supabase}
+          appearance={{ theme: ThemeSupa }}
+          providers={['google', 'github']} // or [] for only email/password
+          socialLayout="horizontal"
+        />
+      </div>
+    )
+  }
+
+  // Show your main app once logged in
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1>Welcome, {session.user.email}!</h1>
+      <button
+        onClick={() => supabase.auth.signOut()}
+        style={{ padding: '8px 12px', background: '#ccc', border: 'none', cursor: 'pointer' }}
+      >
+        Sign Out
+      </button>
+
+      {/* Your real app content goes here */}
+      <p>Here’s where your prompts, communities, etc. would load.</p>
+    </div>
+  )
+}
 
 interface Session {
   user: {
